@@ -1,5 +1,6 @@
 ---
-- hosts: all
+- name: Sheboygan Institute of Quality
+  hosts: all
   gather_facts: no
   tasks:
     - name: Check if Splunk forwarder is installed on RedHat
