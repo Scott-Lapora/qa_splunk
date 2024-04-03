@@ -1,0 +1,35 @@
+---
+- hosts: ALL
+  gather_facts: no
+  tasks:
+    - name: Check if Splunk forwarder is installed on RedHat
+      command: rpm -q splunkforwarder
+      register: rpm_q
+      failed_when: rpm_q.rc != 0 and 'package splunkforwarder is not installed' not in rpm_q.stdout
+      when: ansible_os_family == "RedHat"
+      changed_when: false
+
+    - name: Check if Splunk forwarder is installed on Ubuntu
+      command: dpkg-query -W -f='${Status}' splunkforwarder 2>/dev/null | grep -c "ok installed"
+      register: dpkg_q
+      failed_when: dpkg_q.rc > 1
+      when: ansible_os_family == "Debian"
+      changed_when: false
+
+    - name: Report the version if installed
+      debug:
+        msg: "Splunk forwarder is installed with version {{ rpm_q.stdout.split()[-1] }}"
+      when: rpm_q.stdout != "" or dpkg_q.stdout != "0"
+
+    - name: Report the server configured if installed
+      command: /opt/splunkforwarder/bin/splunk list forward-server
+      register: forward_server
+      failed_when: forward_server.rc != 0 and 'No forwarders configured.' not in forward_server.stdout
+      when: rpm_q.stdout != "" or dpkg_q.stdout != "0"
+      changed_when: false
+
+    - name: Display forward server
+      debug:
+        msg: "Splunk forwarder is configured with server(s): {{ forward_server.stdout }}"
+      when: '"No forwarders configured." not in forward_server.stdout'
+...
